@@ -1,3 +1,6 @@
+//import 'dart:js';
+//import 'dart:html';
+
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -62,11 +65,14 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     Widget page;
     switch (selectedIndex) {
+      //case 0:
+      //  page = GeneratorPage();
+      //  break;
       case 0:
-        page = GeneratorPage();
+        page = FavoritesPage();
         break;
       case 1:
-        page = FavoritesPage();
+        page = LunchPage();
         break;
       default:
         throw UnimplementedError('no widget for $selectedIndex');
@@ -87,6 +93,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     icon: Icon(Icons.favorite),
                     label: Text('Favorites'),
                   ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.dining),
+                    label: Text('Lunch'),
+                  ),
                 ],
                 selectedIndex: selectedIndex,
                 onDestinationSelected: (value) {
@@ -106,50 +116,6 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       );
     });
-  }
-}
-
-class GeneratorPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          BigCard(pair: pair),
-          SizedBox(height: 10),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite();
-                },
-                icon: Icon(icon),
-                label: Text('Like'),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: Text('Next'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -206,11 +172,11 @@ List<Menu> genMenuBodyWithStr(Map<String, dynamic> data) {
 
 class BigCard extends StatelessWidget {
   const BigCard({
-    super.key,
-    required this.pair,
+    Key? key,
+    required this.mealInfo,
   });
 
-  final WordPair pair;
+  final String mealInfo;
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +190,7 @@ class BigCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Text(
-          pair.asPascalCase, // 급식 정보를 여기에 표시
+          mealInfo, // 급식 정보를 여기에 표시
           style: style,
         ),
       ),
@@ -252,10 +218,65 @@ class FavoritesPage extends StatelessWidget {
         ),
         for (var pair in appState.favorites)
           ListTile(
-            leading: Icon(Icons.dining_outlined),
+            leading: Icon(Icons.favorite),
             title: Text(pair.asLowerCase),
           ),
       ],
+    );
+  }
+}
+
+class LunchPage extends StatelessWidget {
+  final DateTime today = DateTime.now();
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var pair = appState.current;
+
+    IconData icon;
+    if (appState.favorites.contains(pair)) {
+      icon = Icons.favorite;
+    } else {
+      icon = Icons.favorite_border;
+    }
+
+    // 급식 정보를 비동기로 가져와서 표시
+    return FutureBuilder<List<Menu>>(
+      future: getMealInfo(schoolCode: '7530126'), // schoolCode를 적절하게 설정
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator(); // 데이터 로딩 중에 로딩 스피너 표시
+        } else if (snapshot.hasError) {
+          return Text('오류: ${snapshot.error}'); // 오류 발생 시 오류 메시지 표시
+        } else {
+          List<Menu> mealInfo = snapshot.data ?? [];
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                BigCard(
+                    mealInfo: mealInfo.isNotEmpty
+                        ? mealInfo[0].toString()
+                        : "급식 정보 없음"),
+                SizedBox(height: 10),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        appState.toggleFavorite();
+                      },
+                      icon: Icon(icon),
+                      label: Text('Like'),
+                    ),
+                    SizedBox(width: 10),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+      },
     );
   }
 }

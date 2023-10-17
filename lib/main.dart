@@ -222,7 +222,7 @@ class BigCard extends StatelessWidget {
     return Card(
       color: theme.colorScheme.primary,
       child: Padding(
-        padding: const EdgeInsets.all(19.0),
+        padding: const EdgeInsets.all(20.0),
         child: Text(
           pair.asPascalCase, // 급식 정보를 여기에 표시
           style: style,

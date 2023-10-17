@@ -2,6 +2,9 @@ import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MyApp());
@@ -150,6 +153,57 @@ class GeneratorPage extends StatelessWidget {
   }
 }
 
+class Menu {
+  String name;
+  String allergenInfo;
+
+  Menu(this.name, this.allergenInfo);
+
+  @override
+  String toString() {
+    return '$name ($allergenInfo)';
+  }
+}
+
+Future<List<Menu>> getMealInfo({String schoolCode = '7530126'}) async {
+  final DateTime today = DateTime.now();
+  final String dateStr = DateFormat('yyMMdd').format(today);
+
+  final response = await http.get(Uri.parse(
+      'https://open.neis.go.kr/hub/mealServiceDietInfo?Type=json&ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=$schoolCode&MLSV_YMD=$dateStr'));
+
+  if (response.statusCode == 200) {
+    final Map<String, dynamic> data = json.decode(response.body);
+
+    try {
+      final List<Menu> menus = genMenuBodyWithStr(data);
+      return menus;
+    } catch (e) {
+      throw Exception('급식 정보가 없습니다.');
+    }
+  } else {
+    throw Exception('HTTP 요청 실패: ${response.statusCode}');
+  }
+}
+
+List<Menu> genMenuBodyWithStr(Map<String, dynamic> data) {
+  List<Menu> body = [];
+  String menuTmp;
+
+  for (menuTmp
+      in data["mealServiceDietInfo"][1]["row"][0]["DDISH_NM"].split('<br/>')) {
+    List<String> parts = menuTmp.split(" (");
+
+    if (parts.length == 1) {
+      body.add(Menu(parts[0], ""));
+    } else {
+      body.add(Menu(parts[0], parts[1]));
+    }
+  }
+
+  return body;
+}
+
 class BigCard extends StatelessWidget {
   const BigCard({
     super.key,
@@ -170,9 +224,8 @@ class BigCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(19.0),
         child: Text(
-          pair.asLowerCase,
+          pair.asPascalCase, // 급식 정보를 여기에 표시
           style: style,
-          semanticsLabel: "${pair.first} ${pair.second}",
         ),
       ),
     );

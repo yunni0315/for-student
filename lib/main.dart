@@ -1,13 +1,14 @@
 //import 'dart:js';
 //import 'dart:html';
-
-import 'package:english_words/english_words.dart';
+//import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 
 void main() {
   runApp(MyApp());
@@ -34,14 +35,14 @@ class MyApp extends StatelessWidget {
 }
 
 class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
+  var current = getMealInfo();
 
   void getNext() {
-    current = WordPair.random();
+    current = getMealInfo();
     notifyListeners();
   }
 
-  var favorites = <WordPair>[];
+  var favorites = <Future>[];
 
   void toggleFavorite() {
     if (favorites.contains(current)) {
@@ -85,10 +86,6 @@ class _MyHomePageState extends State<MyHomePage> {
               child: NavigationRail(
                 extended: constraints.maxWidth >= 600,
                 destinations: [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home),
-                    label: Text('Home'),
-                  ),
                   NavigationRailDestination(
                     icon: Icon(Icons.favorite),
                     label: Text('Favorites'),
@@ -188,7 +185,7 @@ class BigCard extends StatelessWidget {
     return Card(
       color: theme.colorScheme.primary,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(50.0),
         child: Text(
           mealInfo, // 급식 정보를 여기에 표시
           style: style,
@@ -219,7 +216,7 @@ class FavoritesPage extends StatelessWidget {
         for (var pair in appState.favorites)
           ListTile(
             leading: Icon(Icons.favorite),
-            title: Text(pair.asLowerCase),
+            title: Text(pair.toString()),
           ),
       ],
     );
@@ -231,10 +228,10 @@ class LunchPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
-    var pair = appState.current;
+    var mealInfo = appState.current;
 
     IconData icon;
-    if (appState.favorites.contains(pair)) {
+    if (appState.favorites.contains(mealInfo)) {
       icon = Icons.favorite;
     } else {
       icon = Icons.favorite_border;
@@ -254,10 +251,9 @@ class LunchPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                BigCard(
-                    mealInfo: mealInfo.isNotEmpty
-                        ? mealInfo[0].toString()
-                        : "급식 정보 없음"),
+                for (int i = 0; i < mealInfo.length; i++)
+                  BigCard(mealInfo: mealInfo[i].toString()),
+                if (mealInfo.isNotEmpty) Text('급식 정보 없음'),
                 SizedBox(height: 10),
                 Row(
                   mainAxisSize: MainAxisSize.min,

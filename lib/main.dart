@@ -185,7 +185,7 @@ class BigCard extends StatelessWidget {
     return Card(
       color: theme.colorScheme.primary,
       child: Padding(
-        padding: const EdgeInsets.all(50.0),
+        padding: const EdgeInsets.all(20.0),
         child: Text(
           mealInfo, // 급식 정보를 여기에 표시
           style: style,
@@ -228,32 +228,24 @@ class LunchPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
-    var mealInfo = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(mealInfo)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
 
     // 급식 정보를 비동기로 가져와서 표시
     return FutureBuilder<List<Menu>>(
-      future: getMealInfo(schoolCode: '7530126'), // schoolCode를 적절하게 설정
+      future: getMealInfo(schoolCode: '7530126'),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator(); // 데이터 로딩 중에 로딩 스피너 표시
+          return CircularProgressIndicator();
         } else if (snapshot.hasError) {
-          return Text('오류: ${snapshot.error}'); // 오류 발생 시 오류 메시지 표시
+          return Text('오류: ${snapshot.error}');
         } else {
           List<Menu> mealInfo = snapshot.data ?? [];
+          String combinedMealInfo =
+              mealInfo.map((menu) => menu.toString()).join('\n');
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (int i = 0; i < mealInfo.length; i++)
-                  BigCard(mealInfo: mealInfo[i].toString()),
-                if (mealInfo.isNotEmpty) Text('급식 정보 없음'),
+                BigCard(mealInfo: combinedMealInfo),
                 SizedBox(height: 10),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -262,8 +254,8 @@ class LunchPage extends StatelessWidget {
                       onPressed: () {
                         appState.toggleFavorite();
                       },
-                      icon: Icon(icon),
-                      label: Text('Like'),
+                      icon: Icon(Icons.dining),
+                      label: Text('Lunch'),
                     ),
                     SizedBox(width: 10),
                   ],

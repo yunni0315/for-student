@@ -1,3 +1,5 @@
+import 'dart:html';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
@@ -33,7 +35,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyAppState extends ChangeNotifier {
-  late Future<List<Menu>> current; // late 키워드를 사용하여 나중에 할당되도록 변경
+  Future<List<Menu>>? current;
 
   void getNext(String schoolCode) {
     // schoolCode 파라미터 추가
@@ -47,7 +49,7 @@ class MyAppState extends ChangeNotifier {
     if (favorites.contains(current)) {
       favorites.remove(current);
     } else {
-      favorites.add(current);
+      favorites.add(current!);
     }
     notifyListeners();
   }
@@ -150,14 +152,14 @@ class _LoginPageState extends State<LoginPage> {
       );
     } else {
       var schoolInfo = await getSchoolInfo(schoolNameController.text);
+      print(schoolCode);
+      print(schoolCode.runtimeType);
 
       if (schoolInfo != null) {
-        setState(() {
-          // 상태 업데이트
-          schoolCode = schoolInfo['SCHUL_CODE'];
-        });
+        print(schoolInfo["schoolInfo"]["row"][0]["SD_SCHUL_CODE"]);
+        schoolCode = schoolInfo["schoolInfo"]["row"][0]["SD_SCHUL_CODE"];
 
-        Navigator.pushReplacement(
+        await Navigator.pushReplacement(
           context,
           MaterialPageRoute(
               builder: (context) => MyHomePage(schoolCode: schoolCode)),
@@ -194,14 +196,14 @@ Future<Map<String, dynamic>?> getSchoolInfo(String schoolName) async {
       "https://open.neis.go.kr/hub/schoolInfo?Type=json&pIndex=1&pSize=100&SCHUL_NM=$schoolName&KEY=$apiKey";
 
   // HTTP GET 요청
-  var response = await http.get(Uri.parse(url));
+  Dio dio = Dio();
+  var response = await dio.get(url);
 
   if (response.statusCode == 200) {
-    Xml2Json xml2json = Xml2Json();
-    xml2json.parse(response.body);
-    var jsonText = xml2json.toParker(); // JSON 형식으로 변환
+    print(response.data);
+    // JSON 형식으로 변환
 
-    return json.decode(jsonText); // JSON 반환
+    return jsonDecode(response.data); // JSON 반환
   } else {
     print("학교 정보를 불러오는데 실패했습니다.");
     return null;
@@ -231,13 +233,14 @@ Future<List<Menu>> getMealInfo({required String schoolCode}) async {
     final school = Neis(
       Region.gyeonggi,
       "key",
-      schoolInfo['SCHUL_NM'], // 학교 이름 사용
+      schoolInfo["schoolInfo"]["row"]['SCHUL_NM'], // 학교 이름 사용
       SchoolType.his.toString(),
     );
 
     List mealsData = await school.getMeals(year, month);
 
     // mealsData 리스트 안에 있는 데이터로 Menu 객체 리스트 생성
+    print(mealsData);
     List<Menu> menus = mealsData.map((meal) {
       return Menu(meal['name'], meal['allergenInfo']);
       // 'name'과 'allergenInfo'는 실제 데이터의 키 이름에 따라 변경해야 합니다.
@@ -245,7 +248,7 @@ Future<List<Menu>> getMealInfo({required String schoolCode}) async {
 
     return menus;
   } else {
-    throw Exception("Failed to fetch school information.");
+    throw Exception("급식정보를 가져오는 것을 실패했습니다.");
   }
 }
 
